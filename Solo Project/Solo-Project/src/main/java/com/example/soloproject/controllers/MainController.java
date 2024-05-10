@@ -8,13 +8,18 @@ import com.example.soloproject.services.UserService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+@CrossOrigin
 @Controller
 public class MainController {
 
@@ -25,146 +30,147 @@ public class MainController {
     private ChoreService choreService;
 
     private boolean isLoggedIn(HttpSession session) {
-        Long userId = (Long) session.getAttribute("userId");
-        return userId != null;
+        return session.getAttribute("userId") != null;
     }
 
     @GetMapping("/")
-    public String index(Model model) {
+    public ResponseEntity<String> index(Model model) {
         model.addAttribute("newUser", new User());
         model.addAttribute("newLogin", new LoginUser());
-        return "index.jsp";
+        return ResponseEntity.ok("index.jsp");
     }
 
     @PostMapping("/register")
-    public String register(@Valid @ModelAttribute("newUser") User newUser,
-                           BindingResult result, Model model, HttpSession session) {
-
+    public ResponseEntity<String> register(@Valid @ModelAttribute("newUser") User newUser,
+                                           BindingResult result, Model model, HttpSession session) {
         userService.register(newUser, result);
 
         if (result.hasErrors()) {
             model.addAttribute("newLogin", new LoginUser());
-            return "index.jsp";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error Creating User");
         }
 
         session.setAttribute("userId", newUser.getId());
 
-        return "redirect:/classes";
+        return ResponseEntity.ok("User created successfully");
     }
 
     @PostMapping("/login")
-    public String login(@Valid @ModelAttribute("newLogin") LoginUser newLogin,
+    public ResponseEntity<String> login(@Valid @ModelAttribute("newLogin") LoginUser newLogin,
                         BindingResult result, Model model, HttpSession session) {
 
         User user = userService.login(newLogin, result);
 
         if (result.hasErrors()) {
             model.addAttribute("newUser", new User());
-            return "index.jsp";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error Login User");
         }
 
         session.setAttribute("userId", user.getId());
 
-        return "redirect:/classes";
+        return ResponseEntity.ok("Login successfully");
     }
 
     @GetMapping("/logout")
-    public String logout(HttpSession session) {
+    public ResponseEntity<String> logout(HttpSession session) {
         session.setAttribute("userId", null);
-        return "redirect:/";
+        return ResponseEntity.ok("Logout successfully");
     }
 
     @GetMapping("/classes")
-    public String welcome(Model model, HttpSession session) {
+    public ResponseEntity<?> welcome(Model model, HttpSession session) {
         if (!isLoggedIn(session)) {
-            return "redirect:/";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not logged in");
         }
+
         Long userId = (Long) session.getAttribute("userId");
         User user = userService.findById(userId);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
         List<Chore> chores = choreService.getAllChores();
-        model.addAttribute("user", user);
-        model.addAttribute("chores", chores);
-        return "dashboard.jsp";
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("user", user);
+        response.put("chores", chores);
+
+        return ResponseEntity.ok(response);
     }
 
-    
-    // Chore related mappings
-
     @GetMapping("/classes/new")
-    public String showNewChoreForm(Model model, HttpSession session) {
+    public ResponseEntity<?> showNewChoreForm(Model model, HttpSession session) {
         if (!isLoggedIn(session)) {
-            return "redirect:/";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not logged in");
         }
         model.addAttribute("chore", new Chore());
-        return "newChore.jsp";
+        return ResponseEntity.ok(new Chore());
     }
 
     @PostMapping("/classes/new")
-    public String saveChore(@Valid @ModelAttribute("chore") Chore chore,
+    public ResponseEntity<?> saveChore(@Valid @ModelAttribute("chore") Chore chore,
                              BindingResult bindingResult, HttpSession session) {
         if (!isLoggedIn(session)) {
-            return "redirect:/";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not logged in");
         }
         if (bindingResult.hasErrors()) {
-            return "newChore.jsp";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error saving chores");
         }
         User user = userService.findById((Long) session.getAttribute("userId"));
         chore.setUser(user);
         choreService.saveChore(chore);
-        return "redirect:/classes";
+        return ResponseEntity.ok(chore);
     }
 
     @GetMapping("/classes/{id}/edit")
-    public String showEditChoreForm(@PathVariable("id") Long id, Model model, HttpSession session) {
+    public ResponseEntity<?> showEditChoreForm(@PathVariable("id") Long id, Model model, HttpSession session) {
         if (!isLoggedIn(session)) {
-            return "redirect:/";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not logged in");
         }
         Chore chore = choreService.getChoreById(id).orElse(null);
         if (chore == null) {
-            return "redirect:/classes";
+            return ResponseEntity.notFound().build();
         }
         User user = userService.findById(chore.getUser().getId());
         model.addAttribute("chore", chore);
         model.addAttribute("user", user);
-        return "editChore.jsp";
+        return ResponseEntity.ok(chore);
     }
 
-
     @PostMapping("/classes/{id}/edit")
-    public String updateChore(@PathVariable("id") Long id,
+    public ResponseEntity<?> updateChore(@PathVariable("id") Long id,
                                @Valid @ModelAttribute("chore") Chore chore,
                                BindingResult bindingResult, HttpSession session) {
         if (!isLoggedIn(session)) {
-            return "redirect:/";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not logged in");
         }
         if (bindingResult.hasErrors()) {
-            return "editChore.jsp";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error updating chore");
         }
         chore.setId(id);
         choreService.saveChore(chore);
-        return "redirect:/classes";
+        return ResponseEntity.ok(chore);
     }
-    
 
     @GetMapping("/classes/{id}/delete")
-    public String deleteChore(@PathVariable("id") Long id, HttpSession session) {
+    public ResponseEntity<?> deleteChore(@PathVariable("id") Long id, HttpSession session) {
         if (!isLoggedIn(session)) {
-            return "redirect:/";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not logged in");
         }
         choreService.deleteChore(id);
-        return "redirect:/classes";
+        return ResponseEntity.ok("Chore deleted successfully");
     }
 
     @GetMapping("/classes/{id}")
-    public String showChoreDetails(@PathVariable("id") Long id, Model model, HttpSession session) {
+    public ResponseEntity<?> showChoreDetails(@PathVariable("id") Long id, Model model, HttpSession session) {
         if (!isLoggedIn(session)) {
-            return "redirect:/";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not logged in");
         }
         Chore chore = choreService.getChoreById(id).orElse(null);
         if (chore == null) {
-            return "redirect:/classes";
+            return ResponseEntity.notFound().build();
         }
         model.addAttribute("chore", chore);
-        return "choreDetails.jsp";
+        return ResponseEntity.ok(chore);
     }
 }

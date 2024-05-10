@@ -91,11 +91,21 @@ public class User {
 	public void setConfirm(String confirm) {
 		this.confirm = confirm;
 	}
+	 @Override
+	    public boolean equals(Object obj) {
+	        if (this == obj) return true;
+	        if (obj == null || getClass() != obj.getClass()) return false;
+	        User user = (User) obj;
+	        return username.equals(user.username) && email.equals(user.email) && (password != null ? password.equals(user.password) : user.password == null);
+	    }
 
-	public User getBody() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	    @Override
+	    public int hashCode() {
+	        int result = username.hashCode();
+	        result = 31 * result + email.hashCode();
+	        result = 31 * result + (password != null ? password.hashCode() : 0);
+	        return result;
+	    }
   
 }
 
