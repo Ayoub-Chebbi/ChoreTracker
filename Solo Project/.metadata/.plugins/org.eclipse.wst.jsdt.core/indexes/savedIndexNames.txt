@@ -1,0 +1,9 @@
+INDEX VERSION 1.4+C:\Users\ayoub\Desktop\Solo Project\.metadata\.plugins\org.eclipse.wst.jsdt.core\indexes
+2614733648.index
+3753069368.index
+3737124970.index
+2691616412.index
+2406858190.index
+822769376.index
+4050597053.index
+1134414090.index

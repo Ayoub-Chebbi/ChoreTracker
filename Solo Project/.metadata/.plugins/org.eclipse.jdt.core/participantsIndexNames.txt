@@ -1,0 +1,9 @@
+INDEX VERSION 1.134
+C:\Users\ayoub\Desktop\Solo Project\.metadata\.plugins\org.eclipse.jst.jsp.core\jspsearch\4228123530.index
+\Belt-Exam2\src\main\java
+C:\Users\ayoub\Desktop\Solo Project\.metadata\.plugins\org.eclipse.jst.jsp.core\jspsearch\3833310081.index
+\burger-Tracker\src\main\java
+C:\Users\ayoub\Desktop\Solo Project\.metadata\.plugins\org.eclipse.jst.jsp.core\jspsearch\4050597053.index
+\Solo-Project\src\main\java
+C:\Users\ayoub\Desktop\Solo Project\.metadata\.plugins\org.eclipse.jst.jsp.core\jspsearch\1994740948.index
+\books-api\src\main\java

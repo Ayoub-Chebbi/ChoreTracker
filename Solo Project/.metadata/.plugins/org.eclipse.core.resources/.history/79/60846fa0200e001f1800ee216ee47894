@@ -1,0 +1,5 @@
+package com.example.soloproject.repositories;
+
+public class ChoreRepository {
+
+}

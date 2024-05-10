@@ -1,0 +1,168 @@
+package com.example.soloproject.controllers;
+
+import com.example.soloproject.models.Chore;
+import com.example.soloproject.models.LoginUser;
+import com.example.soloproject.models.User;
+import com.example.soloproject.services.ChoreService;
+import com.example.soloproject.services.UserService;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@Controller
+public class MainController {
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ChoreService choreService;
+
+    private boolean isLoggedIn(HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        return userId != null;
+    }
+
+    @GetMapping("/")
+    public String index(Model model) {
+        model.addAttribute("newUser", new User());
+        model.addAttribute("newLogin", new LoginUser());
+        return "index.jsp";
+    }
+
+    @PostMapping("/register")
+    public String register(@Valid @ModelAttribute("newUser") User newUser,
+                           BindingResult result, Model model, HttpSession session) {
+
+        userService.register(newUser, result);
+
+        if (result.hasErrors()) {
+            model.addAttribute("newLogin", new LoginUser());
+            return "index.jsp";
+        }
+
+        session.setAttribute("userId", newUser.getId());
+
+        return "redirect:/classes";
+    }
+
+    @PostMapping("/login")
+    public String login(@Valid @ModelAttribute("newLogin") LoginUser newLogin,
+                        BindingResult result, Model model, HttpSession session) {
+
+        User user = userService.login(newLogin, result);
+
+        if (result.hasErrors()) {
+            model.addAttribute("newUser", new User());
+            return "index.jsp";
+        }
+
+        session.setAttribute("userId", user.getId());
+
+        return "redirect:/classes";
+    }
+
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        session.setAttribute("userId", null);
+        return "redirect:/";
+    }
+
+    @GetMapping("/classes")
+    public String welcome(Model model, HttpSession session) {
+        if (!isLoggedIn(session)) {
+            return "redirect:/";
+        }
+        Long userId = (Long) session.getAttribute("userId");
+        User user = userService.findById(userId);
+        model.addAttribute("user", user);
+        model.addAttribute("courses", chores);
+        return "dashboard.jsp";
+    }
+
+    // Course related mappings
+
+    @GetMapping("/classes/new")
+    public String showNewCourseForm(Model model, HttpSession session) {
+        if (!isLoggedIn(session)) {
+            return "redirect:/";
+        }
+        model.addAttribute("course", new Course());
+        return "newCourse.jsp";
+    }
+
+    @PostMapping("/classes/new")
+    public String saveCourse(@Valid @ModelAttribute("course") Course course,
+                             BindingResult bindingResult, HttpSession session) {
+        if (!isLoggedIn(session)) {
+            return "redirect:/";
+        }
+        if (bindingResult.hasErrors()) {
+            return "newCourse.jsp";
+        }
+        User instructor = userService.findById((Long) session.getAttribute("userId"));
+        course.setInstructor(instructor);
+        courseService.saveCourse(course);
+        return "redirect:/classes";
+    }
+
+    @GetMapping("/classes/{id}/edit")
+    public String showEditCourseForm(@PathVariable("id") Long id, Model model, HttpSession session) {
+        if (!isLoggedIn(session)) {
+            return "redirect:/";
+        }
+        Course course = courseService.getCourseById(id).orElse(null);
+        if (course == null) {
+            return "redirect:/classes";
+        }
+        User instructor = userService.findById(course.getInstructor().getId());
+        model.addAttribute("course", course);
+        model.addAttribute("instructor", instructor);
+        return "editCourse.jsp";
+    }
+
+
+    @PostMapping("/classes/{id}/edit")
+    public String updateCourse(@PathVariable("id") Long id,
+                               @Valid @ModelAttribute("course") Course course,
+                               BindingResult bindingResult, HttpSession session) {
+        if (!isLoggedIn(session)) {
+            return "redirect:/";
+        }
+        if (bindingResult.hasErrors()) {
+            return "editCourse.jsp";
+        }
+        course.setId(id);
+        courseService.saveCourse(course);
+        return "redirect:/classes";
+    }
+
+    @GetMapping("/classes/{id}/delete")
+    public String deleteCourse(@PathVariable("id") Long id, HttpSession session) {
+        if (!isLoggedIn(session)) {
+            return "redirect:/";
+        }
+        courseService.deleteCourse(id);
+        return "redirect:/classes";
+    }
+
+    @GetMapping("/classes/{id}")
+    public String showCourseDetails(@PathVariable("id") Long id, Model model, HttpSession session) {
+        if (!isLoggedIn(session)) {
+            return "redirect:/";
+        }
+        Course course = courseService.getCourseById(id).orElse(null);
+        if (course == null) {
+            return "redirect:/classes";
+        }
+        model.addAttribute("course", course);
+        return "courseDetails.jsp";
+    }
+}
+
