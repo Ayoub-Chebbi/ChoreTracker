@@ -98,6 +98,45 @@ public class MainController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/classes/{id}/add")
+    public String showAddChoreForm(@PathVariable("id") Long id, Model model, HttpSession session) {
+      if (!isLoggedIn(session)) {
+        return "redirect:/";
+      }
+      Chore chore = choreService.getChoreById(id).orElse(null);
+      if (chore == null) {
+        return "redirect:/classes";
+      }
+      model.addAttribute("chore", chore);
+      return "dashboard.jsp";
+    }
+
+
+
+    @PostMapping("/classes/{id}/add")
+    public String addChoreToUser(@PathVariable("id") Long id, HttpSession session) {
+      if (!isLoggedIn(session)) {
+        return "redirect:/";
+      }
+      Chore chore = choreService.getChoreById(id).orElse(null);
+      if (chore == null) {
+        return "redirect:/classes";
+      }
+      Long userId = (Long) session.getAttribute("userId");
+      User user = userService.findById(userId);
+      user.getChores().add(chore);
+      userService.save(user);
+      chore.setUser(user);
+      choreService.saveChore(chore);
+
+      
+      choreService.removeFromAvailableChores(chore.getId());
+
+      return "redirect:/classes";
+    }
+
+
+    
     @GetMapping("/classes/new")
     public ResponseEntity<?> showNewChoreForm(Model model, HttpSession session) {
         if (!isLoggedIn(session)) {

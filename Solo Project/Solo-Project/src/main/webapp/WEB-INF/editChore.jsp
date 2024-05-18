@@ -23,7 +23,7 @@
         </div>
         <div class="form-group">
             <label for="location">Location:</label>
-            <input type="number" id="location" title="location" class="form-control" value="${chore.location}" required>
+            <input type="text" id="location" title="location" class="form-control" value="${chore.location}" required>
         </div>
         <button type="submit" class="btn btn-primary">Update</button>
         <!-- Delete Button -->
